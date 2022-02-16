@@ -1,21 +1,15 @@
 using Amazon;
 using Amazon.CognitoIdentityProvider;
 using Amazon.Extensions.CognitoAuthentication;
+using Polly;
+using Polly.Extensions.Http;
+using WebAdvert.Web.ServiceClient;
+using WebAdvert.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-
-//var cognitoIdentityProvider = new AmazonCognitoIdentityProviderClient(RegionEndpoint.USEast1);
-//var cognitoUserPool = new CognitoUserPool(
-//    builder.Configuration["AWS:UserPoolId"],
-//    builder.Configuration["AWS:UserPoolClientId"],
-//    cognitoIdentityProvider,
-//    builder.Configuration["AWS:UserPoolClientSecret"]);
-
-//builder.Services.AddSingleton<IAmazonCognitoIdentityProvider>(x => cognitoIdentityProvider);
-//builder.Services.AddSingleton<CognitoUserPool>(x => cognitoUserPool);
 
 builder.Services.AddCognitoIdentity(config =>
 {
@@ -34,6 +28,10 @@ builder.Services.ConfigureApplicationCookie(configure =>
     configure.LoginPath = "/Accounts/Login";
 });
 
+builder.Services.AddTransient<IFileUploader, S3FileUploader>();
+builder.Services.AddHttpClient<IAdvertApiClient, AdvertApiClient>()
+    .AddPolicyHandler(GetRetryPolicy())
+    .AddPolicyHandler(GetCircuitBreakerPatternPolicy());
 
 
 var app = builder.Build();
@@ -56,3 +54,17 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+
+
+IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPatternPolicy()
+{
+    return HttpPolicyExtensions.HandleTransientHttpError()
+        .CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
+}
+
+IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
+{
+    return HttpPolicyExtensions.HandleTransientHttpError()
+        .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.NotFound)
+        .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+}
