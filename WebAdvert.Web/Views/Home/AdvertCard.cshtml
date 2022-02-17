@@ -1,0 +1,17 @@
+﻿@model WebAdvert.Web.Models.Home.IndexViewModel
+@using Microsoft.Extensions.Configuration;
+@inject IConfiguration configuration
+
+@{
+    var advertImageUrl = configuration.GetValue<string>("ImageBaseUrl") + "/" + Model.Image;
+}
+
+<div class="card">
+    <a href="#" class="boxClick" data-id="@Model.Id">
+         
+        <img src="@advertImageUrl" alt="Avatar" style="width:100%">
+        <div class="container">
+            <p>@Model.Title</p>
+        </div>
+    </a>
+</div>

@@ -43,5 +43,16 @@ namespace WebAdvert.Web.ServiceClient
 
             return advertResponse;
         }
+
+        public async Task<List<Advertisement>> GetAllAsync()
+        {
+            var apiCallResponse = await httpClient.GetAsync(new Uri($"{httpClient.BaseAddress}/all"));
+            var allAdvertModels = await apiCallResponse.Content.ReadFromJsonAsync<List<Advertisement>>();
+
+            if(allAdvertModels != null)
+                return allAdvertModels.Select(x => mapper.Map<Advertisement>(x)).ToList();
+            else
+                return new List<Advertisement>();
+        }
     }
 }

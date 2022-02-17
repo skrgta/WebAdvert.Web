@@ -33,6 +33,8 @@ builder.Services.AddHttpClient<IAdvertApiClient, AdvertApiClient>()
     .AddPolicyHandler(GetRetryPolicy())
     .AddPolicyHandler(GetCircuitBreakerPatternPolicy());
 
+builder.Services.AddTransient<ISearchApiClient, SearchApiClient>();
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 var app = builder.Build();
 
